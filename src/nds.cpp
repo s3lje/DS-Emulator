@@ -18,6 +18,15 @@ bool NDS::loadROM(const std::string& path){
     std::cout << "Game: " << header.gameTitle << std::endl;
     std::cout << "ARM9: " << header.arm9Size << "bytes @ 0x"
               << std::hex << header.arm9RamAddress << std::endl;
+    std::cout << "ARM7: " << header.arm7Size << "bytes @ 0x"
+              << std::hex << header.arm7RamAddress << std::endl;
+
+    // Copying ARM9 code from ROM to correct RAM address
+    std::memcpy(
+        &mainRAM[header.arm9RamAddress - 0x02000000],
+        rom.data() + header.arm9RomOffset,
+        header.arm9Size
+    );
 
     return true;
 }
