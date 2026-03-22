@@ -6,14 +6,17 @@
 
 bool NDS::loadROM(const std::string& path){
     std::ifstream f(path, std::ios::binary);
-    if (!f) return false;
+    if (!f){
+        std::cerr << "Could not open ROM: " << path << std::endl;
+        return false;
+    }
 
     f.seekg(0, std::ios::end);
-    rom.resize(f.tellg());
+    bus.rom.resize(f.tellg());
     f.seekg(0);
-    f.read(reinterpret_cast<char*>(rom.data()), rom.size());
+    f.read(reinterpret_cast<char*>(bus.rom.data()), bus.rom.size());
 
-    header = *reinterpret_cast<NDSHeader*>(rom.data());
+    header = *reinterpret_cast<NDSHeader*>(bus.rom.data());
 
     std::cout << "Game: " << header.gameTitle << std::endl;
     std::cout << "ARM9: " << header.arm9Size << "bytes @ 0x"
@@ -23,8 +26,8 @@ bool NDS::loadROM(const std::string& path){
 
     // Copying ARM9 code from ROM to correct RAM address
     std::memcpy(
-        &mainRAM[header.arm9RamAddress - 0x02000000],
-        rom.data() + header.arm9RomOffset,
+        &bus.mainRAM[header.arm9RamAddress - 0x02000000],
+        bus.rom.data() + header.arm9RomOffset,
         header.arm9Size
     );
 

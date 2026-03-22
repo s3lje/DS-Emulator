@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdint>
 #include "memory/rom.h"
+#include "memory/bus.h"
 
 class NDS {
     public:
@@ -11,6 +12,5 @@ class NDS {
 
     private:
         NDSHeader header {};
-        std::vector<uint8_t> rom;
-        std::array<uint8_t, 0x400000> mainRAM {};
+        Bus bus;
 };
