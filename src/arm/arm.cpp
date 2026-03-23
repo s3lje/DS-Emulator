@@ -140,4 +140,32 @@ void ARM::execSWI(uint32_t instr)            {}
 void ARM::execMSR_MRS(uint32_t instr)        {}
 void ARM::execTHUMB(uint16_t instr)          {}
 
+void ARM::execBranch(uint32_t instr){
+    // bit 24 distinguishes BL from B
+    bool link = (instr >> 24) & 1; 
 
+    uint32_t offset = (uint32_t)(instr << 8) >> 6;  // sign extend + << 2
+
+    if (link)
+        r[14] = r[15] - 4;
+
+    r[15] += offset;
+    flushPipeline();
+}
+
+void ARM::triggerIRQ(){
+    if (cpsr & (1 << 7)) return;    // ignore if the I bit is set 
+
+    r13_14_irq[1] = r[15] - (inThumb() ? 2 : 4) + 4; // save return address in LR_irq
+    // save current cpsr into spsr_irq 
+    spsr_irq = cpsr;                             
+
+    // Switch to IRQ mode
+    cpsr = (cpsr & ~0x3Fu) | MODE_IRQ;
+    cpsr |=  (1 << 7);
+    cpsr &= ~(1 << 5);
+
+    // Jump to the irq vector
+    r[15] = isARM9 ? 0x0FFFF0018 : 0x00000018;
+    flushPipeline();
+}
