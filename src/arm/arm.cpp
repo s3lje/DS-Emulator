@@ -121,9 +121,10 @@ void ARM::execARM(uint32_t instr){
         }
         execDataProcessing(instr); return;
     }
+
     if ((instr & 0x0C000000) == 0x04000000) { execLoadStore(instr);     return; }
     if ((instr & 0x0E000000) == 0x08000000) { execBlockTransfer(instr); return; }
-    if ((instr & 0x0E000000) == 0x0A000000) { execBranc(instr);         return; }
+    if ((instr & 0x0E000000) == 0x0A000000) { execBranch(instr);         return; }
     if ((instr & 0x0F000000) == 0x0F000000) { execSWI(instr);           return; }
 
     // skipping undefined instr, will trigger exception later
@@ -168,4 +169,19 @@ void ARM::triggerIRQ(){
     // Jump to the irq vector
     r[15] = isARM9 ? 0x0FFFF0018 : 0x00000018;
     flushPipeline();
+}
+
+void ARM::checkInterrupts(){
+    // Stub for now
+}
+
+uint32_t& ARM::currentSPSR(){
+    switch (cpsr & 0x1F){
+        case MODE_FIQ: return spsr_fiq;
+        case MODE_IRQ: return spsr_irq;
+        case MODE_SVC: return spsr_svc;
+        case MODE_ABT: return spsr_abt;
+        case MODE_UND: return spsr_und;
+        default:       return spsr_svc; // shouldnt happen in USER/SYSTEM mode
+    }
 }
