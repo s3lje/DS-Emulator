@@ -56,4 +56,53 @@ bool ARM::checkCond(uint32_t cond){
     }
 }
 
+uint32_t ARM::barrelShift(uint32_t val, uint32_t type,
+        uint32_t amount, bool& carry){
+    // If amount is 0, carry out is the C flag
+    if (amount == 0){
+        carry = flagC();
+        return val;
+    }
+
+    switch (type) {
+        case 0: // Logical shift left
+            if (amount >= 32) {
+                carry = (amount == 32) ? (val & 1) : 0;
+                return 0;
+            }
+            carry = (val >> (32 - amount)) & 1;
+            return val << amount;
+
+
+        case 1: // Logical Right Shift
+            if (amount >= 32){
+                carry = (amount == 32) ? (val & 1) : 0;
+                return 0;
+            }
+            carry = (val >> (amount - 1)) & 1;
+            return val >> amount; 
+        
+
+        case 2: // Arithmetic shift right
+            if (amount >= 32){
+                carry = (val >> 31) & 1;
+                return (uint32_t)val >> 31;
+            }
+            carry = (val >> (amount - 1)) & 1;
+            return (uint32_t)val >> amount; // cast to signed for extension
+        
+
+        case 3: // Rotate right
+            amount &= 31;   // Rotation wraps every 32 bits
+            if (amount == 0){
+                carry = (val >> 31) & 1;
+                return val;
+            }
+            carry = (val >> (amount - 1)) & 1;
+            return (val >> amount) | (val << (32 - amount));
+    }
+
+    return val; 
+}
+
 
