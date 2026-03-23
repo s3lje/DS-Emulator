@@ -12,7 +12,7 @@ enum CPUMode : uint32_t {
     MODE_ABT    = 0x17,
     MODE_UND    = 0x18,
     MODE_SYSTEM = 0x1F
-}
+};
 
 class ARM {
     public:
