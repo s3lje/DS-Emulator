@@ -31,10 +31,16 @@ bool NDS::loadROM(const std::string& path){
         header.arm9Size
     );
 
+    arm9.setPC(header.arm9EntryAddress);
+    arm7.setPC(header.arm7EntryAddress);
+
     return true;
 }
 
 void NDS::run(){
-    // Stub for now... will implement main loop later
-    std::cout << "NDS::run() called...\n";
+    // Placeholder for the scanline loop
+    while (true){
+        arm9.step();
+        arm7.step();
+    }
 }
