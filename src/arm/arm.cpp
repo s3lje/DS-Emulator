@@ -105,4 +105,39 @@ uint32_t ARM::barrelShift(uint32_t val, uint32_t type,
     return val; 
 }
 
+void ARM::execARM(uint32_t instr){
+    uint32_t op     = (instr >> 20) & 0xFF;
+    uint32_t bits74 = (instr >> 4)  & 0xF;
+    
+    if ((instr & 0x0FC000F0) == 0x00000090){
+        execMultiply(instr); return; 
+    }
+    if ((instr & 0x0C000000) == 0x00000000){
+        if (bits74 == 0x9 && ((op & 0xF0) != 0)){
+            execLoadStoreHalf(instr); return;
+        }
+        if ((op & 0xFB) == 0x10){
+            execMSR_MRS(instr); return;
+        }
+        execDataProcessing(instr); return;
+    }
+    if ((instr & 0x0C000000) == 0x04000000) { execLoadStore(instr);     return; }
+    if ((instr & 0x0E000000) == 0x08000000) { execBlockTransfer(instr); return; }
+    if ((instr & 0x0E000000) == 0x0A000000) { execBranc(instr);         return; }
+    if ((instr & 0x0F000000) == 0x0F000000) { execSWI(instr);           return; }
+
+    // skipping undefined instr, will trigger exception later
+}   
+
+
+// Stubbed instruction handlers
+void ARM::execDataProcessing(uint32_t instr) {}
+void ARM::execMultiply(uint32_t instr)       {}
+void ARM::execLoadStore(uint32_t instr)      {}
+void ARM::execLoadStoreHalf(uint32_t instr)  {}
+void ARM::execBlockTransfer(uint32_t instr)  {}
+void ARM::execSWI(uint32_t instr)            {}
+void ARM::execMSR_MRS(uint32_t instr)        {}
+void ARM::execTHUMB(uint16_t instr)          {}
+
 
