@@ -39,10 +39,44 @@ uint16_t Bus::read16(uint32_t addr){
     return (word >> ((addr & 2) * 2)) & 0xFFFF;
 }
 
-//Stubbed, ignore writes for now
-void Bus::write8 (uint32_t addr, uint8_t  val) {}
-void Bus::write16(uint32_t addr, uint16_t val) {}
-void Bus::write32(uint32_t addr, uint32_t val) {}
+
+void Bus::write8 (uint32_t addr, uint8_t  val) {
+    uint32_t off = addr & ~3u;
+    uint32_t word = read32(off);
+    int      shift = (addr & 2) * 8;
+    word = (word & ~(0xFFFFu << shift)) | (uint32_t(val) << shift);
+    write32(off, word);
+}
+
+void Bus::write16(uint32_t addr, uint16_t val) {
+    addr &= ~1u;
+    uint32_t off  = addr & ~3u;
+    uint32_t word = read32(off);
+    int      shift = (addr & 2) * 8;
+    word = (word & ~(0xFFFFu << shift)) | (uint32_t(val) << shift);
+    write32(off, word);
+}
+
+void Bus::write32(uint32_t addr, uint32_t val) {
+    addr &= ~3u;
+    switch (addr >> 24){
+        case 0x02: {
+                       uint32_t off = (addr - 0x02000000) & 0x3FFFFF;
+                       *reinterpret_cast<uint32_t*>(&mainRAM[off]) = val;
+                       break;
+                   }
+        case 0x03: {
+                       uint32_t off = (addr - 0x03000000) & 0x7FFF;
+                       *reinterpret_cast<uint32_t*>(&sharedWRAM[off]) = val;
+                       break; 
+                   }
+        case 0x04:
+                   writeIO32(addr, val);
+                   break;
+        default:
+                   break;
+    }
+}
 
 uint32_t Bus::readIO32(uint32_t addr){
     // Stubbed
