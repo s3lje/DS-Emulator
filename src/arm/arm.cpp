@@ -163,7 +163,38 @@ void ARM::execDataProcessing(uint32_t instr){
     bool n, z, c = carry, v = flagV();
 
     switch (opcode){
-
+        case 0x0: result = op1 & op2; break; // AND
+        case 0x1: result = op1 ^ op2; break; // XOR
+        case 0x2:                            // SUB
+            result = op1 - op2;
+            c = op1 >= op2;
+            v = ((op1 ^ op2) & (op1 ^ result)) >> 31;
+            break;
+        case 0x3:                            // Reverse SUB
+            result = op2 - op1;
+            c = op2 >= op1;
+            v = ((op2 ^ op1) & (op2 ^ result)) >> 31; 
+            break;
+        case 0x4:                            // ADD
+            result = op1 + op2;
+            c = result < op1; 
+            v = (~(op1 ^ op2) & (op1 ^ result)) >> 31;
+            break;
+        case 0x5:                            // ADD with carry
+            result = op1 + op2 + flagC();
+            c = (uint64_t)op1 + op2 + flagC() > 0xFFFFFFFF;
+            v = (~(op1 ^ op2) & (op1 ^ result)) >> 31;
+            break;
+        case 0x6:
+            result = op1 - op2 - !flagC();
+            c = (uint64_t)op1 >= (uint64_t)op2 + !flagC();
+            v = ((op1 ^ op2) & (op1 ^ result)) >> 31;
+            break;
+        case 0x7:
+            result = op2 - op1 - !flagC();
+            c = (uint64_t)op2 >= (uint64_t)op1 + !flagC();
+            v = ((op2 ^ op1) & (op2 ^ result)) >> 31;
+            break;
     }
 }
 
