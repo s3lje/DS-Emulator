@@ -195,6 +195,26 @@ void ARM::execDataProcessing(uint32_t instr){
             c = (uint64_t)op2 >= (uint64_t)op1 + !flagC();
             v = ((op2 ^ op1) & (op2 ^ result)) >> 31;
             break;
+        case 0x8:                              // TST (AND but only set flags)
+            result = op1 & op2;
+            updateFlags = true; rd = 16; break;
+        case 0x9:                              // TEQ (XOR but only set flags)
+            result = op1 ^ op2;
+            updateFlags = true; rd = 16; break;
+        case 0xA:                              // CMP (SUB but only set flags)
+            result = op1 - op2;
+            c = op1 >= op2;
+            v = ((op1 ^ op2) & (op1 ^ result)) >> 31;
+            updateFlags = true; rd = 16; break;
+        case 0xB:                              // CMN (ADD but only set flags)
+            result = op1 + op2;
+            c = result < op1;
+            v = (~(op1 ^ op2) & (op1 ^ result)) >> 31;
+            updateFlags = true; rd = 16; break;
+        case 0xC: result = op1 | op2;  break; // ORR
+        case 0xD: result = op2;        break; // MOV
+        case 0xE: result = op1 & ~op2; break; // BIC (bit clear)
+        case 0xF: result = ~op2;       break; // MVN (move NOT)
     }
 }
 
