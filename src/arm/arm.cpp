@@ -230,9 +230,49 @@ void ARM::execDataProcessing(uint32_t instr){
     }
 }
 
+void ARM::execLoadStore(uint32_t instr){
+    bool     pre        = (instr >> 24) & 1;
+    bool     up         = (instr >> 23) & 1;
+    bool     byteAccess = (instr >> 22) & 1;
+    bool     wb         = (instr >> 21) & 1;
+    bool     load       = (instr >> 20) & 1;
+    uint32_t rn         = (instr >> 16) & 0xF;
+    uint32_t rd         = (instr >> 12) & 0xF;
+
+    // Decode offset
+    uint32_t offset;
+    if ((instr >> 25) & 1){
+        // Register with optinal shift
+        bool dummy;
+        uint32_t rm = instr & 0xF;
+        offset = barrelShift(r[rm], (instr >> 5) & 3, (instr >> 7) & 0x1F, dummy);
+    } else {
+        //12bit immediate offset
+        offset = instr & 0xFFF;
+    }
+
+    uint32_t base = r[rn];
+
+    if (pre) base = up ? base + offset : base - offset; // Apply offset before access
+
+    if (load){
+        uint32_t val = byteAccess ? bus->read8(base) : bus->read32(base);
+        r[rd] = val;
+        if (rd == 15) flushPipeline(); 
+    } else {
+        uint32_t val = r[rd];
+        if (rd == 15) val += 4;
+        byteAccess ? bus->write8(base, val & 0xFF) : bus->write32(base, val); 
+    }
+
+    // apply offset after access and writeback if preindexed
+    if (!pre) base = up ? base + offset : base - offset;
+    if (wb || !pre) r[rn] = base;
+}
+
+
 // Stubbed instruction handlers
 void ARM::execMultiply(uint32_t instr)       {}
-void ARM::execLoadStore(uint32_t instr)      {}
 void ARM::execLoadStoreHalf(uint32_t instr)  {}
 void ARM::execBlockTransfer(uint32_t instr)  {}
 void ARM::execSWI(uint32_t instr)            {}
