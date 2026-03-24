@@ -138,6 +138,33 @@ void ARM::execDataProcessing(uint32_t instr){
     uint32_t rd          = (instr >> 12) & 0xF; // destination register index
     bool     carry       = flagC();             // carry-in for ADC/SBC
 
+    // Decode op2
+    uint32_t op2;
+    if ((instr >> 25) & 1){
+        uint32_t imm       = instr & 0xFF;
+        uint32_t rotate = ((instr >> 8) & 0xF) * 2; 
+        op2 = (imm >> rotate) | (imm << (32 - rotate));
+        if (rotate) carry = (op2 >> 31) & 1; 
+    } else {
+        uint32_t rm        = instr & 0xF;
+        uint32_t shiftType = (instr >> 5) & 3;
+        uint32_t shiftAmt;
+
+        if ((instr >> 4) & 1){
+            shiftAmt = r[(instr >> 8) & 0xF] & 0xFF;
+        } else {
+            shiftAmt = (instr >> 7) & 0x1F;
+        }
+        op2 = barrelShift(r[rm], shiftType, shiftAmt, carry);
+    }
+
+    uint32_t op1    = r[rn];
+    uint32_t result = 0;
+    bool n, z, c = carry, v = flagV();
+
+    switch (opcode){
+
+    }
 }
 
 // Stubbed instruction handlers
