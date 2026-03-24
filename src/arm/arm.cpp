@@ -270,10 +270,43 @@ void ARM::execLoadStore(uint32_t instr){
     if (wb || !pre) r[rn] = base;
 }
 
+void ARM::execLoadStoreHalf(uint32_t instr){
+    bool     pre  = (instr >> 24) & 1;
+    bool     up   = (instr >> 23) & 1; 
+    bool     imm  = (instr >> 22) & 1;
+    bool     wb   = (instr >> 21) & 1;
+    bool     load = (instr >> 20) & 1;
+    uint32_t rn   = (instr >> 16) & 0xF;
+    uint32_t rd   = (instr >> 12) & 0xF;
+    uint32_t sh   = (instr >>  5) & 3;    // 01=UH, 10=SB, 11=SH
+
+    uint32_t offset = imm
+        ? ((instr >> 4) & 0xF0) | (instr & 0xF)
+        : r[instr & 0xF]; 
+
+    uint32_t base = r[rn];
+    if (pre) base = up ? base + offset : base - offset;
+
+    if (load){
+        uint32_t val;
+        switch (sh){
+            case 1: val = bus->read16(base); break;
+            case 2: val = (int32_t)(int8_t) bus->read8 (base); break;
+            case 3: val = (int32_t)(int16_t)bus->read16(base); break;
+            default: val = 0;
+        }
+        r[rd] = val;
+        if (rd == 15) flushPipeline();
+    } else {
+        if (sh == 1) bus->write16(base, r[rd] & 0xFFFF); // STRH
+    }
+
+    if (!pre) base = up ? base + offset : base - offset;
+    if (wb || !pre) r[rn] = base;
+}
 
 // Stubbed instruction handlers
 void ARM::execMultiply(uint32_t instr)       {}
-void ARM::execLoadStoreHalf(uint32_t instr)  {}
 void ARM::execBlockTransfer(uint32_t instr)  {}
 void ARM::execSWI(uint32_t instr)            {}
 void ARM::execMSR_MRS(uint32_t instr)        {}
