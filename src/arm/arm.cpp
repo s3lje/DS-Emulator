@@ -131,8 +131,16 @@ void ARM::execARM(uint32_t instr){
 }   
 
 
+void ARM::execDataProcessing(uint32_t instr){
+    bool     updateFlags = (instr >> 20) & 1;
+    uint32_t opcode      = (instr >> 21) & 0xF; 
+    uint32_t rn          = (instr >> 16) & 0xF; // first opened register index
+    uint32_t rd          = (instr >> 12) & 0xF; // destination register index
+    bool     carry       = flagC();             // carry-in for ADC/SBC
+
+}
+
 // Stubbed instruction handlers
-void ARM::execDataProcessing(uint32_t instr) {}
 void ARM::execMultiply(uint32_t instr)       {}
 void ARM::execLoadStore(uint32_t instr)      {}
 void ARM::execLoadStoreHalf(uint32_t instr)  {}
