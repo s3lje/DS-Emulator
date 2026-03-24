@@ -29,13 +29,14 @@ uint32_t Bus::read32(uint32_t addr){
 }
 
 uint8_t Bus::read8(uint32_t addr){
-    //Stubbed for now
-    return 0;
+    uint32_t word = read32(addr & ~3u);
+    return (word >> ((addr & 3) * 8)) & 0xFF;
 }
 
 uint16_t Bus::read16(uint32_t addr){
-    //Stubbed for now
-    return 0;
+    addr &= ~1u;    // Force 16bit alignment
+    uint32_t word = read32(addr & ~3u);
+    return (word >> ((addr & 2) * 2)) & 0xFFFF;
 }
 
 //Stubbed, ignore writes for now
