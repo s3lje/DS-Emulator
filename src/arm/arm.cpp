@@ -216,6 +216,18 @@ void ARM::execDataProcessing(uint32_t instr){
         case 0xE: result = op1 & ~op2; break; // BIC (bit clear)
         case 0xF: result = ~op2;       break; // MVN (move NOT)
     }
+
+    n = result >> 31;
+    z = result == 0;
+
+    if (updateFlags){
+        if (rd == 15){
+            cpsr = currentSPSR();
+            flushPipeline();
+        } else {
+            setNZCV(n, z, c, v);
+        }
+    }
 }
 
 // Stubbed instruction handlers
