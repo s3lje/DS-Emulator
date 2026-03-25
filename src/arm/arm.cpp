@@ -386,9 +386,45 @@ void ARM::execMultiply(uint32_t instr){
     }
 }
 
+void ARM::execMSR_MRS(uint32_t instr){
+    bool useSPSR = (instr >> 22) & 1;
+    bool isMSR   = (instr >> 21) & 1;
+
+    if (!isMSR){
+        // move status register to general registr
+        uint32_t rd = (instr >> 12) & 0xF;
+        r[rd] = useSPSR ? currentSPSR() : cpsr;
+    } else {
+        // move register or immediate to status register
+        uint32_t fieldMask = (instr >> 16) & 0xF; // field mask [19:16] controls
+        uint32_t val;                             // which bytes get updated.
+
+        if ((instr >> 25) & 1){
+            // immediate val with rotation
+            uint32_t imm = instr & 0xFF;
+            uint32_t rot = ((instr >> 8) & 0xF) * 2;
+            val = (imm >> rot) | (imm << (32 - rot));
+        } else {
+            val = r[instr & 0xF];
+        }
+
+        uint32_t mask = 0;
+        if (fieldMask & 1) mask |= 0x000000FF; // control byte
+        if (fieldMask & 2) mask |= 0x0000FF00; // extension byte
+        if (fieldMask & 4) mask |= 0x00FF0000; // status byte
+        if (fieldMask & 8) mask |= 0xFF000000; // flags byte
+
+        if (useSPSR){
+            currentSPSR() = (currentSPSR() & ~mask) | (val & mask);
+        } else {
+            cpsr = (cpsr & ~mask) | (val & mask); // can change CPU mode
+        }
+    }
+}
+
+
 // Stubbed instruction handlers
 void ARM::execSWI(uint32_t instr)            {}
-void ARM::execMSR_MRS(uint32_t instr)        {}
 void ARM::execTHUMB(uint16_t instr)          {}
 
 void ARM::execBranch(uint32_t instr){
