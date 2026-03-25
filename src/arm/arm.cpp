@@ -305,9 +305,48 @@ void ARM::execLoadStoreHalf(uint32_t instr){
     if (wb || !pre) r[rn] = base;
 }
 
+
+void ARM::execBlockTransfer(uint32_t instr){
+    bool     pre    = (instr >> 24) & 1;
+    bool     up     = (instr >> 23) & 1;
+    bool     s      = (instr >> 22) & 1;
+    bool     wb     = (instr >> 21) & 1;
+    bool     load   = (instr >> 20) & 1;
+    uint32_t rn     = (instr >> 16) & 0xF;
+    uint16_t rlist  = instr & 0xFFFF;
+
+    int count = __builtin_popcount(rlist);          // count how many registers are being trasferred.
+    uint32_t base = r[rn];                          // When down (up=0), start address is base minus
+    uint32_t addr = up ? base : base - count * 4;   // total transfer size.
+
+    for (int i = 0; i <= 15; i++){
+        if (!(rlist & (1 << i))) continue;
+
+        // preindex, access at addr+4
+        uint32_t ea = pre ? addr + 4 : addr;
+        addr += 4;
+
+        if (load) {
+            r[i] = bus->read32(ea);
+            if (i == 15){                           // loading into PC
+                flushPipeline();
+                if (s) 
+                    cpsr = currentSPSR();           // s bit with r15 means restore csps
+            }   
+        } else {
+            uint32_t val = (i == 15) ? r[15] + 4 : r[i];
+            bus->write32(ea, val);
+        }
+    }
+    // Write back the updated base register
+    // note: if rn is in rlist and its a load, the loaded val takes priority
+    if (wb && !(load && (rlist & (1 << rn)))){
+        r[rn] = up ? base + count * 4 : base - count * 4;
+    }
+}
+
 // Stubbed instruction handlers
 void ARM::execMultiply(uint32_t instr)       {}
-void ARM::execBlockTransfer(uint32_t instr)  {}
 void ARM::execSWI(uint32_t instr)            {}
 void ARM::execMSR_MRS(uint32_t instr)        {}
 void ARM::execTHUMB(uint16_t instr)          {}
