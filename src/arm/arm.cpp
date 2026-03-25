@@ -422,10 +422,55 @@ void ARM::execMSR_MRS(uint32_t instr){
     }
 }
 
+void ARM::execTHUMB(uint16_t instr){
+    uint32_t op = instr >> 12;
+
+    switch (op) {
+        case 0x0: case 0x1: {
+            // LSL/LSR/ASR Rd, Rs, #imm5
+            uint32_t shiftOp = (instr >> 11) & 3;
+            uint32_t amount  = (instr >>  6) & 0x1F;
+            uint32_t rs      = (instr >>  3) & 7;
+            uint32_t rd      = instr         & 7;
+            bool carry;
+            r[rd] = barrelShift(r[rs], shiftOp, amount, carry);
+            setFlagN(r[rd] >> 31);
+            setFlagZ(r[rd] == 0);
+            if (amount) setFlagC(carry);
+            break;
+        }
+        
+        case 0x2: case 0x3: {
+            // Move/compare/add/subtract immediate
+            uint32_t subop = (instr >> 11) & 3;
+            uint32_t rd    = (instr >>  8) & 7;
+            uint32_t imm   = instr         & 0xFF;
+            uint32_t res;
+            bool c = flagC(), v = flagV();
+            switch (subop){
+                case 0: res = imm; break;
+                case 1: res = r[rd] - imm;
+                        c = r[rd] >= imm;
+                        v = ((r[rd] ^ imm) & (r[rd] ^ res)) >> 31;
+                        setNZCV(res>>31, res==0, c, v); return;
+                case 2: res = r[rd] + imm;
+                        c = res < r[rd];
+                        v = (~(r[rd] ^ imm) & (r[rd] ^ res)) >> 31;
+                        break;
+                case 3: res = r[rd] - imm;
+                        c = r[rd] >= imm;
+                        v = ((r[rd] ^ imm) & (r[rd] ^ res)) >> 31; 
+                        break;
+            }
+            r[rd] = res;
+            setNZCV(res>>31, res==0, c, v);
+            return;
+        }
+    }
+}
 
 // Stubbed instruction handlers
 void ARM::execSWI(uint32_t instr)            {}
-void ARM::execTHUMB(uint16_t instr)          {}
 
 void ARM::execBranch(uint32_t instr){
     // bit 24 distinguishes BL from B
