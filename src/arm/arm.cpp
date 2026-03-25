@@ -345,8 +345,48 @@ void ARM::execBlockTransfer(uint32_t instr){
     }
 }
 
+void ARM::execMultiply(uint32_t instr){
+    bool     accumulate = (instr >> 21) & 1;
+    bool     setFlags   = (instr >> 20) & 1;
+    bool     longMul    = (instr >> 23) & 1; //64bit result
+    bool     sign       = (instr >> 22) & 1; // signed or unsigned
+
+    uint32_t rd  = (instr >> 16) & 0xF; // long or short
+    uint32_t rn  = (instr >> 12) & 0xF; // accumulate register / low result
+    uint32_t rs  = (instr >> 8)  & 0xF;
+    uint32_t rm  = instr         & 0xF;
+
+    if (!longMul){
+        // MUL / MLA, 32bit result
+        uint32_t result = r[rm] * r[rs];
+        if (accumulate)
+            result += r[rn];
+        r[rd] = result;
+        if (setFlags){
+            setFlagN(result >> 31);
+            setFlagZ(result == 0); 
+        }
+    } else {
+        // UMULL / UMLAL / SMULL / SMLAL, 64bit result
+        uint64_t result;
+        if (sign){
+            result = (int64_t)(int32_t)r[rm] * (uint32_t)r[rs];
+        } else {
+            result = (uint64_t)r[rm] * r[rs];
+        }
+        if (accumulate)
+            result += ((uint64_t)r[rd] << 32) | r[rn]; // UMLAL /SMLAL
+
+        r[rn] = result & 0xFFFFFFFF; // low 32 bits
+        r[rd] = result >> 32;        // high 32 bits
+        if (setFlags){
+            setFlagN(result >> 63);
+            setFlagZ(result == 0);
+        }
+    }
+}
+
 // Stubbed instruction handlers
-void ARM::execMultiply(uint32_t instr)       {}
 void ARM::execSWI(uint32_t instr)            {}
 void ARM::execMSR_MRS(uint32_t instr)        {}
 void ARM::execTHUMB(uint16_t instr)          {}
