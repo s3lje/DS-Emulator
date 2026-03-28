@@ -464,7 +464,72 @@ void ARM::execTHUMB(uint16_t instr){
             }
             r[rd] = res;
             setNZCV(res>>31, res==0, c, v);
-            return;
+            break;
+        }
+
+        case 0x4: {
+            if ((instr >> 11) & 1) {
+                // PC-relative load: LDR Rd, [PC, #imm8*4]
+                uint32_t rd  = (instr >> 8) & 7;
+                uint32_t off = (instr & 0xFF) * 4;
+                uint32_t base = (r[15] & ~3u) + off;  // PC is word-aligned here
+                r[rd] = bus->read32(base);
+            } else {
+                // ALU operations and hi-register ops
+                uint32_t subop = (instr >> 6) & 0xF;
+                uint32_t rs    = (instr >> 3) & 7;
+                uint32_t rd    =  instr       & 7;
+
+                // Hi-register operations (bit 6-7 can address r8-r15)
+                if (subop >= 0x8) {
+                    uint32_t h1 = (instr >> 7) & 1;
+                    uint32_t h2 = (instr >> 6) & 1;
+                    rs = (instr >> 3) & 0xF;  // full 4-bit index
+                    rd = ((instr & 7) | (h1 << 3));
+                    switch (subop & 3) {
+                        case 0: r[rd] += r[rs]; if(rd==15) flushPipeline(); break; // ADD
+                        case 1: { uint32_t res = r[rd]-r[rs];
+                                  setNZCV(res>>31,res==0,r[rd]>=r[rs],
+                                  ((r[rd]^r[rs])&(r[rd]^res))>>31); break; } // CMP
+                        case 2: r[rd] = r[rs]; if(rd==15) flushPipeline(); break; // MOV
+                        case 3: // BX/BLX
+                            if (h1) r[14] = r[15] - 2;  // BLX saves return address
+                            cpsr = (cpsr & ~(1<<5)) | ((r[rs] & 1) << 5);
+                            r[15] = r[rs] & ~1u;
+                            flushPipeline(); break;
+                    }
+                    break;
+                }
+
+                // Standard ALU ops
+                bool carry; uint32_t res;
+                switch (subop) {
+                    case 0x0: r[rd] &= r[rs]; setFlagN(r[rd]>>31); setFlagZ(r[rd]==0); break; // AND
+                    case 0x1: r[rd] ^= r[rs]; setFlagN(r[rd]>>31); setFlagZ(r[rd]==0); break; // EOR
+                    case 0x2: res = barrelShift(r[rd],0,r[rs]&0xFF,carry);
+                              r[rd]=res; setFlagN(res>>31);setFlagZ(res==0);setFlagC(carry); break; // LSL
+                    case 0x3: res = barrelShift(r[rd],1,r[rs]&0xFF,carry);
+                              r[rd]=res; setFlagN(res>>31);setFlagZ(res==0);setFlagC(carry); break; // LSR
+                    case 0x4: res = barrelShift(r[rd],2,r[rs]&0xFF,carry);
+                              r[rd]=res; setFlagN(res>>31);setFlagZ(res==0);setFlagC(carry); break; // ASR
+                    case 0x5: res=r[rd]+r[rs]+flagC();
+                              setNZCV(res>>31,res==0,(uint64_t)r[rd]+r[rs]+flagC()>0xFFFFFFFF,
+                              (~(r[rd]^r[rs])&(r[rd]^res))>>31); r[rd]=res; break; // ADC
+                    case 0x7: res = barrelShift(r[rd],3,r[rs]&0xFF,carry);
+                              r[rd]=res; setFlagN(res>>31);setFlagZ(res==0);setFlagC(carry); break; // ROR
+                    case 0x8: res=r[rd]&r[rs]; setFlagN(res>>31);setFlagZ(res==0); break; // TST
+                    case 0x9: res=0-r[rs]; r[rd]=res;
+                              setNZCV(res>>31,res==0,r[rs]==0,((r[rs])&res)>>31); break; // NEG
+                    case 0xA: res=r[rd]-r[rs];
+                              setNZCV(res>>31,res==0,r[rd]>=r[rs],
+                              ((r[rd]^r[rs])&(r[rd]^res))>>31); break; // CMP
+                    case 0xC: r[rd] |= r[rs]; setFlagN(r[rd]>>31);setFlagZ(r[rd]==0); break; // ORR
+                    case 0xD: r[rd]*=r[rs]; setFlagN(r[rd]>>31);setFlagZ(r[rd]==0); break; // MUL
+                    case 0xE: r[rd]&=~r[rs];setFlagN(r[rd]>>31);setFlagZ(r[rd]==0); break; // BIC
+                    case 0xF: r[rd]=~r[rs]; setFlagN(r[rd]>>31);setFlagZ(r[rd]==0); break; // MVN
+                }
+            }
+            break;
         }
     }
 }
