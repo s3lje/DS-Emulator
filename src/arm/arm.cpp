@@ -76,7 +76,7 @@ uint32_t ARM::barrelShift(uint32_t val, uint32_t type,
 
         case 1: // Logical Right Shift
             if (amount >= 32){
-                carry = (amount == 32) ? (val & 1) : 0;
+                carry = (amount == 32) ? (val >> 31) : 0;
                 return 0;
             }
             carry = (val >> (amount - 1)) & 1;
@@ -86,10 +86,10 @@ uint32_t ARM::barrelShift(uint32_t val, uint32_t type,
         case 2: // Arithmetic shift right
             if (amount >= 32){
                 carry = (val >> 31) & 1;
-                return (uint32_t)val >> 31;
+                return (int32_t)val >> 31;
             }
             carry = (val >> (amount - 1)) & 1;
-            return (uint32_t)val >> amount; // cast to signed for extension
+            return (int32_t)val >> amount; // cast to signed for extension
         
 
         case 3: // Rotate right
@@ -227,6 +227,11 @@ void ARM::execDataProcessing(uint32_t instr){
         } else {
             setNZCV(n, z, c, v);
         }
+    }
+
+    if (rd < 16) {
+        r[rd] = result;
+        if (rd == 15) flushPipeline(); 
     }
 }
 
@@ -679,11 +684,12 @@ void ARM::execBranch(uint32_t instr){
     // bit 24 distinguishes BL from B
     bool link = (instr >> 24) & 1; 
 
-    uint32_t offset = (uint32_t)(instr << 8) >> 6;  // sign extend + << 2
+    int32_t offset = (int32_t)(instr << 8) >> 6;  // sign extend + << 2
 
     if (link)
         r[14] = r[15] - 4;
-
+    
+    r[15] -= 4; // accounts for the +4 from step()
     r[15] += offset;
     flushPipeline();
 }
