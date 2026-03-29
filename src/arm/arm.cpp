@@ -531,6 +531,92 @@ void ARM::execTHUMB(uint16_t instr){
             }
             break;
         }
+        case 0x5: {
+            // Load/Store with register offset
+            uint32_t subop = (instr >> 9) & 7; 
+            uint32_t ro    = (instr >> 6) & 7;
+            uint32_t rb    = (instr >> 3) & 7;
+            uint32_t rd    =  instr       & 7; 
+            uint32_t addr  = r[rb] + r[ro];
+            switch (subop){
+                case 0: bus->write32(addr, r[rd]); break;
+                case 1: bus->write16(addr, r[rd]); break;
+                case 2: bus->write8 (addr, r[rd]); break;
+                case 3: r[rd]=(int32_t)(int8_t) bus->read8 (addr); break;
+                case 4: r[rd]=bus->read32(addr);                   break;
+                case 5: r[rd]=bus->read16(addr);                   break;
+                case 6: r[rd]=bus->read8(addr);                    break;
+                case 7: r[rd]=(int32_t)(int16_t)bus->read16(addr); break;
+            }
+            break;
+        }
+        case 0x6: case 0x7: case 0x8: {
+            // Load/Store with 5bit immediate offset
+            bool     load  = (instr >> 11) & 1;
+            bool     byteA = (op == 0x7);
+            bool     half  = (op == 0x8);
+            uint32_t off   = (instr >> 6) & 0x1F;
+            uint32_t rb    = (instr >> 3) & 7;
+            uint32_t rd    =  instr       & 7;
+            uint32_t addr  = r[rb] + (half ? off*2 : byteA ? off : off*4); 
+            if (load) r[rd] = byteA ? bus->read8(addr)
+                            : half  ? bus->read16(addr)
+                                    : bus->read32(addr); 
+            else { 
+                if (byteA) bus->write8(addr, r[rd]);
+                else if (half) bus->write16(addr, r[rd]);
+                else bus->write32(addr, r[rd]);
+            }
+            break;
+        }
+        case 0x9: {
+            // SP-relative Load/Store
+            bool     sp = (instr >> 11) & 1;
+            uint32_t rd = (instr >> 8)  & 7;
+            uint32_t off = (instr & 0xFF) * 4;
+            r[rd] = (sp ? r[13] : (r[15] & ~3u)) + off;
+            break;
+        }
+        case 0xA: {
+            // Load address (PC or SP relative into register)
+            bool     sp = (instr >> 11) & 1;
+            uint32_t rd = (instr >> 8)  & 7;
+            uint32_t off = (instr & 0xFF) * 4;
+            r[rd] = (sp ? r[13] : (r[15] & ~3u)) + off;
+            break;
+        }
+        case 0xB: {
+            // Push/pop and SP adjustment
+            if ((instr >> 8) & 1) {
+                // PUSH / POP
+                bool     pop   = (instr >> 11) & 1;
+                bool     lrpc  = (instr >>  8) & 1;  // push LR / pop PC
+                uint8_t  rlist =  instr & 0xFF;
+                if (!pop) {
+                    // PUSH: pre-decrement SP for each register
+                    int count = __builtin_popcount(rlist) + lrpc;
+                    r[13] -= count * 4;
+                    uint32_t addr = r[13];
+                    for (int i = 0; i < 8; i++) {
+                        if (rlist & (1<<i)) { bus->write32(addr, r[i]); addr+=4; }
+                    }
+                    if (lrpc) bus->write32(addr, r[14]);
+                } else {
+                    // POP: post-increment SP
+                    uint32_t addr = r[13];
+                    for (int i = 0; i < 8; i++) {
+                        if (rlist & (1<<i)) { r[i]=bus->read32(addr); addr+=4; }
+                    }
+                    if (lrpc) { r[15]=bus->read32(addr); addr+=4; flushPipeline(); }
+                    r[13] = addr;
+                }
+            } else {
+                // ADD/SUB SP, #imm7
+                uint32_t off = (instr & 0x7F) * 4;
+                r[13] = (instr & 0x80) ? r[13] - off : r[13] + off;
+            }
+            break;
+        }
     }
 }
 
