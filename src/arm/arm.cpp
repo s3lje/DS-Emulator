@@ -617,6 +617,58 @@ void ARM::execTHUMB(uint16_t instr){
             }
             break;
         }
+        case 0xC: {
+            // LDMIA / STMIA — load/store multiple with writeback
+            bool     load  = (instr >> 11) & 1;
+            uint32_t rb    = (instr >>  8) & 7;
+            uint8_t  rlist =  instr & 0xFF;
+            uint32_t addr  = r[rb];
+            for (int i = 0; i < 8; i++) {
+                if (!(rlist & (1<<i))) continue;
+                if (load)
+                    r[i] = bus->read32(addr);
+                else
+                    bus->write32(addr, r[i]);
+                addr += 4;
+            }
+            r[rb] = addr;  // always write back in THUMB LDM/STM
+            break;
+        }
+        case 0xD: {
+            // Conditional branch / SWI
+            uint32_t cond = (instr >> 8) & 0xF;
+            if (cond == 0xF) {
+                execSWI(0); // SWI
+            } else if (checkCond(cond)) {
+                int32_t off = (int8_t)(instr & 0xFF);
+                r[15] += off * 2;
+                flushPipeline();
+            }
+            break;
+        }
+        case 0xE: {
+            // Unconditional branch
+            int32_t off = ((int32_t)(instr << 21)) >> 20;  // sign extend 11-bit
+            r[15] += off;
+            flushPipeline();
+            break;
+        }
+        case 0xF: {
+            // BL / BLX — two-instruction sequence for long branches.
+            // First instruction (H=0): LR = PC + (offset_hi << 12)
+            // Second instruction (H=1): PC = LR + (offset_lo << 1), LR = old PC | 1
+            bool h = (instr >> 11) & 1;
+            if (!h) {
+                int32_t off = ((int32_t)(instr << 21)) >> 9;  // sign extend
+                r[14] = r[15] + off;
+            } else {
+                uint32_t target = r[14] + ((instr & 0x7FF) << 1);
+                r[14] = (r[15] - 2) | 1;  // return address with THUMB bit
+                r[15] = target;
+                flushPipeline();
+            }
+            break;
+        }
     }
 }
 
