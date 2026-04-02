@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <array>
 #include <vector>
-
+#include "../io/interrupts.h"
 class Bus {
     public:
         uint8_t  read8 (uint32_t addr);
@@ -16,6 +16,13 @@ class Bus {
         std::array<uint8_t, 0x8000>   sharedWRAM{};  // 32 KB @ 0x03000000
         std::vector<uint8_t>          rom;           // cartridge ROM
     
+        InterruptController irq9;
+        InterruptController irq7; 
+
+        uint16_t vcount = 0; 
+        uint16_t keyinput = 0x3FF;
+
+
     private:
         uint32_t readIO32 (uint32_t addr);
         void     writeIO32(uint32_t addr, uint32_t val);

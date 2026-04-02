@@ -18,7 +18,7 @@ struct InterruptController {
     }
 
     // hardware acknowledge
-    void acknowledge(uint32_t val){
+    void acknowledgeIF(uint32_t val){
         IF &= ~val; 
     }
 };

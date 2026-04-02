@@ -1,4 +1,5 @@
 #include "bus.h"
+#include "../io/ioregs.h"
 #include <iostream>
 
 uint32_t Bus::read32(uint32_t addr){
@@ -79,10 +80,23 @@ void Bus::write32(uint32_t addr, uint32_t val) {
 }
 
 uint32_t Bus::readIO32(uint32_t addr){
-    // Stubbed
-    return 0;
+    switch (addr) {
+        case IME9:      return irq9.IME;
+        case IE9:       return irq9.IE;
+        case IF9:       return irq9.IF;
+        case DISPSTAT:  return 0;
+        case VCOUNT:    return vcount;
+        case KEYINPUT:  return keyinput;
+        default:        return 0;
+    }
 }
 
+
 void Bus::writeIO32(uint32_t addr, uint32_t val){
-    //Stubbed
+    switch (addr) {
+        case IME9: irq9.IME = val & 1; break;
+        case IE9:  irq9.IE  = val;     break;
+        case IF9:  irq9.acknowledgeIF(val); break;
+        default: break; 
+    }
 }
