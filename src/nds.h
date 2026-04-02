@@ -12,6 +12,6 @@ class NDS {
     private:
         NDSHeader header {};
         Bus bus;
-        ARM arm9 {&bus, true};  // ARM9 - main CPU
-        ARM arm7 {&bus, false}; // ARM7 - sub CPU
+        ARM arm9 {&bus, &bus.irq9, true};  // ARM9 - main CPU
+        ARM arm7 {&bus, &bus.irq7, false}; // ARM7 - sub CPU
 };

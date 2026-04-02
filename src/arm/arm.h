@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <array>
+#include "../io/interrupts.h"
 
 class Bus;
 
@@ -16,7 +17,7 @@ enum CPUMode : uint32_t {
 
 class ARM {
     public:
-        ARM(Bus* bus, bool isARM9);
+        ARM(Bus* bus, InterruptController* irq, bool isARM9);
 
         void step();
         void setPC(uint32_t addr);
@@ -40,6 +41,7 @@ class ARM {
 
     private:
         Bus* bus;
+        InterruptController* irq; 
         bool isARM9;
 
         // CPSR flag helpers

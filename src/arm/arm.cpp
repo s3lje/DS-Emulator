@@ -2,7 +2,8 @@
 #include "../memory/bus.h"
 #include <stdexcept>
 
-ARM::ARM(Bus* bus, bool isARM9) : bus(bus), isARM9(isARM9){
+ARM::ARM(Bus* bus, InterruptController irq, bool isARM9) 
+        : bus(bus), irq(irq), isARM9(isARM9){
     // CPSR reset value
     cpsr = MODE_SVC | (1 << 7) | (1 << 6);
 }
@@ -712,7 +713,8 @@ void ARM::triggerIRQ(){
 }
 
 void ARM::checkInterrupts(){
-    // Stub for now
+    if (irq->pending())
+        triggerIRQ(); 
 }
 
 uint32_t& ARM::currentSPSR(){
