@@ -1,4 +1,5 @@
 #include "nds.h"
+#include "io/ioregs.h"
 #include <iostream>
 #include <fstream>
 #include <cstring>
@@ -40,7 +41,50 @@ bool NDS::loadROM(const std::string& path){
 void NDS::run(){
     // Placeholder for the scanline loop
     while (true){
-        arm9.step();
-        arm7.step();
+        runFrame(); 
     }
+}
+
+void NDS::runFrame(){
+    for (int line = 0; line < 263; line++){
+        bus.vcount = line;
+        runScanline(line);
+
+        if (line == 192)
+            fireVBlank();
+    }
+}
+
+void NDS::runScanline(int line){
+    int cycles9 = 0, cycles7 = 0;
+
+    while (cycles9 < CyclesPerScanline9){
+        arm9.step();
+        arm9.checkInterrupts();
+        cycles9++;
+
+        // ARM7 runs every other cycle
+        if (cycles9 % 2 == 0){
+            arm7.step();
+            arm7.checkInterrupts();
+            cycles7++;
+        }
+    }
+
+    // tick the timers 
+    bus.timers9.tick(CyclesPerScanline9, bus.irq9);
+    bus.timers7.tick(CyclesPerScanline7, bus.irq7);
+
+    if (line < 192)
+        fireHBlank(); 
+}
+
+void NDS::fireVBlank(){
+    bus.irq9.raise(IRQ::VBlank);
+    bus.irq7.raise(IRQ::VBlank); 
+}
+
+void NDS::fireHBlank(){
+    bus.irq9.raise(IRQ::HBlank);
+    bus.irq7.raise(IRQ::HBlank); 
 }
