@@ -3,6 +3,8 @@
 #include <array>
 #include <vector>
 #include "../io/interrupts.h"
+#include "../io/timers.h"
+
 class Bus {
     public:
         uint8_t  read8 (uint32_t addr);
@@ -21,7 +23,9 @@ class Bus {
 
         uint16_t vcount = 0; 
         uint16_t keyinput = 0x3FF;
-
+        
+        TimerGroup timers9;
+        TimerGroup timers7; 
 
     private:
         uint32_t readIO32 (uint32_t addr);

@@ -83,10 +83,20 @@ uint32_t Bus::readIO32(uint32_t addr){
     switch (addr) {
         case IME9:      return irq9.IME;
         case IE9:       return irq9.IE;
-        case IF9:       return irq9.IF;
+        case IF9:       return irq9.IF; 
         case DISPSTAT:  return 0;
         case VCOUNT:    return vcount;
         case KEYINPUT:  return keyinput;
+
+        case 0x04000100:
+            return timers9.timers[0].counter | (timers9.timers[0].control << 16);
+        case 0x04000104:
+            return timers9.timers[1].counter | (timers9.timers[1].control << 16);
+        case 0x04000108:
+            return timers9.timers[2].counter | (timers9.timers[2].control << 16);
+        case 0x0400010C:
+            return timers9.timers[3].counter | (timers9.timers[3].control << 16);
+
         default:        return 0;
     }
 }
@@ -97,6 +107,16 @@ void Bus::writeIO32(uint32_t addr, uint32_t val){
         case IME9: irq9.IME = val & 1; break;
         case IE9:  irq9.IE  = val;     break;
         case IF9:  irq9.acknowledgeIF(val); break;
+
+        case 0x04000100: timers9.timers[0].reload  = val & 0xFFFF;
+                         timers9.timers[0].control = val >> 16; break;
+        case 0x04000104: timers9.timers[1].reload  = val & 0xFFFF;
+                         timers9.timers[1].control = val >> 16; break;
+        case 0x04000108: timers9.timers[2].reload  = val & 0xFFFF;
+                         timers9.timers[2].control = val >> 16; break;
+        case 0x0400010C: timers9.timers[3].reload  = val & 0xFFFF;
+                         timers9.timers[3].control = val >> 16; break;
+
         default: break; 
     }
 }
