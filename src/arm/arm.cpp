@@ -2,7 +2,7 @@
 #include "../memory/bus.h"
 #include <stdexcept>
 
-ARM::ARM(Bus* bus, InterruptController irq, bool isARM9) 
+ARM::ARM(Bus* bus, InterruptController* irq, bool isARM9) 
         : bus(bus), irq(irq), isARM9(isARM9){
     // CPSR reset value
     cpsr = MODE_SVC | (1 << 7) | (1 << 6);
