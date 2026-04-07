@@ -27,5 +27,13 @@ class GPU2D {
 
         uint16_t readPalette(uint32_t offset);
         uint8_t  readVRAM8  (uint32_t addr);
-        uint16_t readVRAM16 (uint32_t addr); 
+        uint16_t readVRAM16 (uint32_t addr);
+
+
+    public:
+        GPU2D(Bus* bus, bool engineB);
+        
+        void renderScanline(int y);
+
+        std::array<uint16_t, 256 * 192> frameBuffer{}; 
 };
