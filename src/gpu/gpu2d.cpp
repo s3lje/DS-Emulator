@@ -61,4 +61,20 @@ void GPU2D::renderScanline(int y){
         frameBuffer[y * 256 + x] = line[x]; 
 }
 
+void GPU2D::renderTiledBG(int bg, int y, uint16_t* line){
+    // control registers and scroll registers for BGs
+    uint16_t bgcnt   = readReg16(0x008 + bg * 2);
+    uint16_t scrollX = readReg16(0x010 + bg * 4);
+    uint16_t scrollY = readReg16(0x012 + bg * 4);
 
+    bool     is8bpp   = (bgcnt >> 7) & 1;
+    uint32_t tileBase = ((bgcnt >> 2) & 0x3) * 0x4000;
+    uint32_t mapBase  = ((bgcnt >> 8) & 0x1F) * 0x800;
+
+    uint32_t px0 = scrollX & 0x1FF;
+    uint32_t py0 = (scrollY + y) & 0x1FF;
+    
+    // each entry is 16 bits
+    uint32_t tilemapY = py0 / 8;
+    uint32_t pixelY   = py0 % 8;
+}
