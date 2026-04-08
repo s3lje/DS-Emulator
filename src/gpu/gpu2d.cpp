@@ -77,4 +77,41 @@ void GPU2D::renderTiledBG(int bg, int y, uint16_t* line){
     // each entry is 16 bits
     uint32_t tilemapY = py0 / 8;
     uint32_t pixelY   = py0 % 8;
+
+    for (int x = 0; x < 256; x++){
+        uint32_t px = (px0 + x) & 0x1FF;
+        uint32_t tilemapX = px / 8;
+        uint32_t pixelX   = px % 8;
+
+        // caluclate the current screen block
+        uint32_t screenBlock = 0;
+        uint32_t screenSize  = (bgcnt >> 14) & 3;
+        if (screenSize == 1 && tilemapX >= 32) screenBlock = 1;
+        if (screenSize == 2 && tilemapY >= 32) screenBlock = 1;
+        if (screenSize == 3){
+            if (tilemapX >= 32) screenBlock += 1;
+            if (tilemapY >= 32) screenBlock += 2; 
+        }
+
+        uint32_t mapAddr = bgVramBase() + mapBase
+                         + screenBlock * 0x800
+                         + (tilemapY & 31) * 32 * 2
+                         + (tilemapX & 31) * 2; 
+
+        uint16_t entry   = readVRAM16(mapAddr);
+        uint32_t tileNum = entry & 0x3FF;
+        bool     flipH   = (entry >> 10) & 1;
+        bool     flipV   = (entry >> 11) & 1;
+        uint32_t palette = (entry >> 12) & 0xF;
+
+        uint32_t tx = flipH ? 7 - pixelX : pixelX;
+        uint32_t ty = flipV ? 7 - pixelY : pixelY;
+
+        uint8_t colorIdx;
+        if (is8bpp) {
+            // 1 byte per pixel
+            uint32_t tileAddr = bgVramBase() + tileBase + tileNum * 64 + ty * 8 + tx;
+            colorIdx = readVRAM8(tileAddr); 
+        }
+    }
 }
