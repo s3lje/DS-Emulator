@@ -1,3 +1,6 @@
+#ifndef __BUS_H
+#define __BUS_H
+
 #pragma once
 #include <cstdint>
 #include <vector>
@@ -25,3 +28,5 @@ struct NDSHeader {
     uint32_t arm7RamAddress;
     uint32_t arm7Size;
 } __attribute__((packed));
+
+#endif

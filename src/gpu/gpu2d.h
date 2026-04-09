@@ -1,3 +1,6 @@
+#ifndef __GPU2D_H
+#define __GPU2D_H
+
 #pragma once
 #include <cstdint>
 #include <array>
@@ -37,3 +40,5 @@ class GPU2D {
 
         std::array<uint16_t, 256 * 192> frameBuffer{}; 
 };
+
+#endif
