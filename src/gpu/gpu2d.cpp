@@ -134,4 +134,25 @@ void GPU2D::renderBitmapBG(int bg, int y, uint16_t* line){
     }
 }
 
+void GPU2D::renderOBJ(int y, uint16_t* line){
+    // object attribute memory holds 128 sprite descriptors
+    // engine A OAM: 0x07000000, engine B OAM: 0x07000400
+    uint32_t oamBase = engineB ? 0x07000400 : 0x07000000;
+
+    // scans OAM in reverse so lower-number sprites render on top
+    for (int i = 127; i >= 0; i--){
+        uint32_t addr = oamBase + i * 8;
+        uint16_t attr0 = bus->read16(addr + 0);
+        uint16_t attr1 = bus->read16(addr + 2);
+        uint16_t attr2 = bus->read16(addr + 4);
+
+        if (((attr0 >> 8) & 3) == 2) continue;
+
+        int sprY = attr0 & 0xFF;    // Y position (wraps at 256)
+        int sprX = attr1 & 0x1FF;   // X position (can be offscreen left)
+        
+
+    }
+}
+
 
