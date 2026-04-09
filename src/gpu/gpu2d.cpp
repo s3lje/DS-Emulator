@@ -115,3 +115,23 @@ void GPU2D::renderTiledBG(int bg, int y, uint16_t* line){
         }
     }
 }
+
+void GPU2D::renderAffineBG(int bg, int y, uint16_t* line){
+    // Stub for now
+}
+
+void GPU2D::renderBitmapBG(int bg, int y, uint16_t* line){
+    // mode 5: 256x192 direct color map
+    // frame 0 at VRAM base, frame 1 at +0xA000
+    uint32_t dispcnt = readReg32(0x000);
+    uint32_t frame   = (dispcnt >> 4) & 1;
+    uint32_t base    = bgVramBase() + frame * 0xA000;
+
+    for (int x = 0; x < 256; x++){
+        uint16_t color = readVRAM16(base + (y * 256 + x) * 2);
+        if (color & 0x8000)
+            line[x] = color & 0x7FFF;
+    }
+}
+
+
