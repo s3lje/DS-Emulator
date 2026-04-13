@@ -151,6 +151,14 @@ void GPU2D::renderOBJ(int y, uint16_t* line){
         int sprY = attr0 & 0xFF;    // Y position (wraps at 256)
         int sprX = attr1 & 0x1FF;   // X position (can be offscreen left)
         
+        static const int widths[]  = {8,16,32,64, 16,32,32,64, 8,8,16,32};
+        static const int heights[] = {8,16,32,64, 8,8,16,32, 16,32,32,64};
+        int sizeIdx = ((attr0 >> 14) & 3) * 4 + ((attr1 >>14) & 2); 
+
+        int w = widths [((attr0>>14)&3)*4 + ((attr1>>14)&3)];
+        int h = heights[((attr0>>14)&3)*4 + ((attr1>>14)&3)];
+
+
 
     }
 }
