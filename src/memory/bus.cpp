@@ -1,6 +1,7 @@
 #include "bus.h"
 #include "../io/ioregs.h"
 #include <iostream>
+#include <memory>
 
 uint32_t Bus::read32(uint32_t addr){
     addr &= ~3u;    // Making sure of 32bit alignment
@@ -20,6 +21,27 @@ uint32_t Bus::read32(uint32_t addr){
             {
                 return readIO32(addr);
             }
+
+        case 0x05: {    // palette RAM
+            uint32_t off = (addr - 0x05000000) & 0x7FF;
+            return *reinterpret_cast<uint32_t*>(&pallete[off]);
+        }
+
+        case 0x06: {    // VRAM
+            uint32_t off = addr - 0x06000000;
+            if (off < 0x100000)
+                return *reinterpret_cast<uint32_t*>(&vramA[off & 0xFFFFC]);
+            off -= 0x100000;
+            if (off < 0x100000)
+                return *reinterpret_cast<uint32_t*>(&vramB[off & 0xFFFFC]);
+            return 0;
+        }
+
+        case 0x07: {    // OAM
+            uint32_t off = (addr - 0x07000000) & 0x7FF;
+            return *reinterpret_cast<uint32_t*>(&oam[off]);
+        }
+
         case 0x08: case 0x09:
             if (addr - 0x08000000 < rom.size())
                 return *reinterpret_cast<uint32_t*>(&rom[addr - 0x08000000]);
@@ -74,6 +96,24 @@ void Bus::write32(uint32_t addr, uint32_t val) {
         case 0x04:
                    writeIO32(addr, val);
                    break;
+        
+        case 0x05: {
+            uint32_t off = (addr - 0x05000000) & 0x7FF;
+            *reinterpret_cast<uint32_t*>(&pallete[off]) = val;
+            break;
+        }
+        case 0x06: {
+            uint32_t off = addr - 0x06000000;
+            if (off < 0x100000)
+                *reinterpret_cast<uint32_t*>(&vramA[off & 0xFFFFC]) = val;
+            break;
+        }
+        case 0x07: {
+            uint32_t off = (addr - 0x07000000) & 0x7FF;
+            *reinterpret_cast<uint32_t*>(&oam[off]) = val;
+            break;
+        }
+
         default:
                    break;
     }
