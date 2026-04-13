@@ -1,9 +1,6 @@
 #ifndef __BUS_H
 #define __BUS_H
 
-#endif // !__BUS_H
-#define __BUS_H
-
 #pragma once
 #include <cstdint>
 #include <array>
