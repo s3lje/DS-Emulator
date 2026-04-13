@@ -7,6 +7,7 @@
 #include "memory/bus.h"
 #include "arm/arm.h"
 #include "gpu/gpu2d.h"
+#include "frontend/sdl_frontend.h"
 
 class NDS {
     public:
@@ -26,6 +27,7 @@ class NDS {
         ARM arm7 {&bus, &bus.irq7, false}; // ARM7 - sub CPU
         GPU2D gpuA {&bus, false};
         GPU2D gpuB {&bus, true};
+        SDLFrontend frontend;
     
 
         // Apparently the ARM9 runs at around 67 MHz and ARM7 at 33

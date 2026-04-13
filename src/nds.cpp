@@ -40,10 +40,15 @@ bool NDS::loadROM(const std::string& path){
 }
 
 void NDS::run(){
-    // Placeholder for the scanline loop
-    while (true){
+    if (!frontend.init()) return;
+
+    bool running = true;
+    while (running){
+        running = frontend.pollEvents(bus.keyinput);
         runFrame(); 
     }
+    
+    frontend.shutdown();
 }
 
 void NDS::runFrame(){
@@ -85,7 +90,12 @@ void NDS::runScanline(int line){
 
 void NDS::fireVBlank(){
     bus.irq9.raise(IRQ::VBlank);
-    bus.irq7.raise(IRQ::VBlank); 
+    bus.irq7.raise(IRQ::VBlank);
+
+    frontend.presentFrame(
+        gpuA.frameBuffer.data(), 
+        gpuB.frameBuffer.data()
+    );   
 }
 
 void NDS::fireHBlank(){
