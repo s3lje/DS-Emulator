@@ -158,8 +158,57 @@ void GPU2D::renderOBJ(int y, uint16_t* line){
         int w = widths [((attr0>>14)&3)*4 + ((attr1>>14)&3)];
         int h = heights[((attr0>>14)&3)*4 + ((attr1>>14)&3)];
 
+        // Y wraps at 256
+        int adjustedY = sprY > 192 ? sprY - 256 : sprY;
+        if (y < adjustedY || y >= adjustedY + h) continue;
 
+        bool     flipH   = (attr1 >> 12) & 1;
+        bool     flipV   = (attr1 >> 13) & 1;
+        bool     is8bpp  = (attr0 >> 13) & 1;
+        uint32_t tileNum = attr2 & 0x3FF;
+        uint32_t palette = (attr2 >> 12) & 0xF;
 
+        int sprLineY = y - adjustedY;
+        if (flipV) sprLineY = h - 1 - sprLineY;
+
+        for (int sx = 0; sx < w; sx++){
+            int screenX = sprX + sx;
+            if (screenX < 0 || screenX >= 256) continue;
+
+            int sprLineX = flipH ? w - 1 - sx : sx;
+
+            // tiles are layed out linearly in 1D mapping mode
+            uint32_t tileX = sprLineX / 8;
+            uint32_t tileY = sprLineY / 8;
+            uint32_t px    = sprLineX % 8;
+            uint32_t py    = sprLineY % 8;
+
+            uint32_t dispcnt = readReg32(0x000);
+            bool oneDim = (dispcnt >> 4) & 1; // 1D vs 2D OBJ VRAM mapping
+            
+            uint32_t tile;
+            if (oneDim){
+                tile = tileNum + tileY * (w/8) + tileX;
+            } else {
+                tile = tileNum + tileY * 32 + tileX;
+            }
+
+            uint8_t colorIdx;
+            if (is8bpp){
+                uint32_t addr2 = objVramBase() + tile * 64 + py * 8 + px;
+                colorIdx = readVRAM8(addr2);
+            } else {
+                uint32_t addr2 = objVramBase() + tile * 32 + py * 4 + px/2;
+                uint8_t pair = readVRAM8(addr2);
+                colorIdx = (px & 1) ? (pair >> 4) : (pair & 0xF);
+                if (colorIdx) colorIdx += palette * 16;
+            }
+
+            if (colorIdx == 0) continue;
+
+            // OBJ palette starts at offset 0x200 in palette RAM
+            line[screenX] = readPalette(0x200 + colorIdx * 2) & 0x7FFF;
+        }
     }
 }
 
