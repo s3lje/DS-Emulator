@@ -1,4 +1,5 @@
 #include "nds.h"
+#include "gpu/gpu2d.h"
 #include "io/ioregs.h"
 #include <iostream>
 #include <fstream>
@@ -75,8 +76,11 @@ void NDS::runScanline(int line){
     bus.timers9.tick(CyclesPerScanline9, bus.irq9);
     bus.timers7.tick(CyclesPerScanline7, bus.irq7);
 
-    if (line < 192)
-        fireHBlank(); 
+    if (line < 192){
+        gpuA.renderScanline(line);
+        gpuB.renderScanline(line);
+        fireHBlank();
+    }
 }
 
 void NDS::fireVBlank(){
