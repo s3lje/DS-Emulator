@@ -1,5 +1,5 @@
 #include "gpu2d.h"
-#include "../memory/bus.cpp"
+#include "../memory/bus.h"
 #include "../io/ioregs.h"
 
 GPU2D::GPU2D(Bus* bus, bool engineB) 
