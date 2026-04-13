@@ -13,10 +13,11 @@ struct NDSHeader {
     uint8_t  unitCode;
     uint8_t  encryptionSeed;
     uint8_t  deviceCapacity;
-    uint8_t  reserved[9];
+    uint8_t  reserved[7];
     uint8_t  region;
     uint8_t  romVersion;
     uint8_t  autostart;
+    uint8_t  unused; 
 
     uint32_t arm9RomOffset;
     uint32_t arm9EntryAddress;
@@ -28,5 +29,7 @@ struct NDSHeader {
     uint32_t arm7RamAddress;
     uint32_t arm7Size;
 } __attribute__((packed));
+
+
 
 #endif

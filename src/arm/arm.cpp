@@ -1,5 +1,6 @@
 #include "arm.h"
 #include "../memory/bus.h"
+#include <iostream>
 #include <stdexcept>
 
 ARM::ARM(Bus* bus, InterruptController* irq, bool isARM9) 
@@ -21,16 +22,22 @@ void ARM::flushPipeline(){
         r[15] = (r[15] & ~3u) + 8;
 }
 
+
 void ARM::step(){
+    static int instrCount = 0;
     if (inThumb()){
         // fetch 16bit instr @ PC-4
         uint16_t instr = bus->read16(r[15] - 4);
         r[15] += 2;
+        if (instrCount++ < 20)
+                    std::cout << std::hex << "PC=" << r[15] << " INSTR=" << instr << "\n"; 
         execTHUMB(instr);
     } else {
         // fetch 32bit instr @ PC-8
         uint32_t instr = bus->read32(r[15] - 8);
         r[15] += 4;
+        if (instrCount++ < 20)
+                    std::cout << std::hex << "PC=" << r[15] << " INSTR=" << instr << "\n"; 
         if (checkCond(instr >> 28)) // Top 4 bits are condition code
             execARM(instr);
     }

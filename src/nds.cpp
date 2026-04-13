@@ -17,6 +17,14 @@ bool NDS::loadROM(const std::string& path){
     bus.rom.resize(f.tellg());
     f.seekg(0);
     f.read(reinterpret_cast<char*>(bus.rom.data()), bus.rom.size());
+    
+
+    // Print first 32 bytes raw so we can see what we got
+    std::cout << "First 32 ROM bytes: ";
+    for (int i = 0; i < 32; i++)
+        std::cout << std::hex << std::setw(2) << std::setfill('0')
+                  << (int)bus.rom[i] << " ";
+    std::cout << "\n";
 
     header = *reinterpret_cast<NDSHeader*>(bus.rom.data());
 
@@ -26,9 +34,32 @@ bool NDS::loadROM(const std::string& path){
     std::cout << "ARM7: " << header.arm7Size << "bytes @ 0x"
               << std::hex << header.arm7RamAddress << std::endl;
 
+    std::cout << "Title:      " << std::string(header.gameTitle, 12) << "\n";
+    std::cout << "ARM9 offset: 0x" << std::hex << header.arm9RomOffset << "\n";
+    std::cout << "ARM9 entry:  0x" << std::hex << header.arm9EntryAddress << "\n";
+    std::cout << "ARM9 ram:    0x" << std::hex << header.arm9RamAddress << "\n";
+    std::cout << "ARM9 size:   0x" << std::hex << header.arm9Size << "\n";
+    std::cout << "ARM7 offset: 0x" << std::hex << header.arm7RomOffset << "\n";
+    std::cout << "ARM7 entry:  0x" << std::hex << header.arm7EntryAddress << "\n";
+    std::cout << "ARM7 ram:    0x" << std::hex << header.arm7RamAddress << "\n";
+    std::cout << "ARM7 size:   0x" << std::hex << header.arm7Size << "\n";
     // Copying ARM9 code from ROM to correct RAM address
+    
+
+    // Validate before copying
+    auto arm9Off = header.arm9RamAddress - 0x02000000;
+    if (arm9Off + header.arm9Size > bus.mainRAM.size()) {
+        std::cerr << "ARM9 load out of bounds! offset=0x" << std::hex
+                  << arm9Off << " size=0x" << header.arm9Size << "\n";
+        return false;
+    }
+    if (header.arm9RomOffset + header.arm9Size > bus.rom.size()) {
+        std::cerr << "ARM9 ROM offset out of bounds!\n";
+        return false;
+    }
+
     std::memcpy(
-        &bus.mainRAM[header.arm9RamAddress - 0x02000000],
+        &bus.mainRAM[arm9Off],
         bus.rom.data() + header.arm9RomOffset,
         header.arm9Size
     );
@@ -36,13 +67,17 @@ bool NDS::loadROM(const std::string& path){
     arm9.setPC(header.arm9EntryAddress);
     arm7.setPC(header.arm7EntryAddress);
 
+    std::cout << "ARM9 entry: 0x" << std::hex << header.arm9EntryAddress << "\n";
+    std::cout << "ARM7 entry: 0x" << std::hex << header.arm7EntryAddress << "\n";
+    std::cout << "ARM9 initial PC: 0x" << arm9.r[15] << "\n";
+    std::cout << "ARM7 initial PC: 0x" << arm7.r[15] << "\n";
+
     return true;
 }
 
 void NDS::run(){
     if (!frontend.init()) return;
 
-    bool running = true;
     while (running){
         running = frontend.pollEvents(bus.keyinput);
         runFrame(); 
@@ -54,8 +89,14 @@ void NDS::run(){
 void NDS::runFrame(){
     for (int line = 0; line < 263; line++){
         bus.vcount = line;
-        runScanline(line);
 
+        if (line % 10 == 0)
+            running = frontend.pollEvents(bus.keyinput);
+
+        if (!running) return;
+
+
+        runScanline(line);
         if (line == 192)
             fireVBlank();
     }
@@ -64,7 +105,7 @@ void NDS::runFrame(){
 void NDS::runScanline(int line){
     int cycles9 = 0, cycles7 = 0;
 
-    while (cycles9 < CyclesPerScanline9){
+    while (cycles9 < CyclesPerScanline9 && running){
         arm9.step();
         arm9.checkInterrupts();
         cycles9++;
