@@ -19,7 +19,8 @@ class NDS {
         void runScanline(int line);
         void fireVBlank();
         void fireHBlank();
-
+        
+        bool running = true; 
             
         NDSHeader header;
         Bus bus;
