@@ -1,3 +1,6 @@
+#ifndef __NDS_H
+#define __NDS_H
+
 #pragma once
 #include <string>
 #include "memory/rom.h"
@@ -30,3 +33,5 @@ class NDS {
         static constexpr int CyclesPerScanline9 = 2130;
         static constexpr int CyclesPerScanline7 = 1065; // half speed
 };
+
+#endif

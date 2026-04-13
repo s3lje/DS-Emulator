@@ -1,3 +1,6 @@
+#ifndef __IOREGS_H
+#define __IOREGS_H
+
 #pragma once
 #include <cstdint>
 
@@ -51,4 +54,6 @@ namespace IRQ {
     static constexpr uint32_t IPC_RecvNotEmpty = 1 << 18;
     static constexpr uint32_t GameCard  = 1 << 19;
 }
+
+#endif
 

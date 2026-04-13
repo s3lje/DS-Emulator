@@ -1,3 +1,6 @@
+#ifndef __INTERRUPTS_H
+#define __INTERRUPTS_H
+
 #pragma once
 #include <cstdint>
 
@@ -22,3 +25,5 @@ struct InterruptController {
         IF &= ~val; 
     }
 };
+
+#endif

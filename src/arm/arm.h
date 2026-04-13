@@ -1,3 +1,6 @@
+#ifndef __ARM_H
+#define __ARM_H
+
 #pragma once
 #include <cstdint>
 #include <array>
@@ -88,3 +91,5 @@ class ARM {
         // THUMB instruction handler
         void execTHUMB(uint16_t instr); 
 };
+
+#endif

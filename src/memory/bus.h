@@ -1,3 +1,9 @@
+#ifndef __BUS_H
+#define __BUS_H
+
+#endif // !__BUS_H
+#define __BUS_H
+
 #pragma once
 #include <cstdint>
 #include <array>
@@ -38,3 +44,5 @@ class Bus {
         void     writeIO32(uint32_t addr, uint32_t val);
 
 };
+
+#endif

@@ -1,3 +1,6 @@
+#ifndef __TIMERS_H
+#define __TIMERS_H
+
 #pragma once
 #include <cstdint>
 #include "interrupts.h"
@@ -57,3 +60,5 @@ struct TimerGroup {
         return overflowed; 
     }
 };
+
+#endif
