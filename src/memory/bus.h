@@ -22,7 +22,7 @@ class Bus {
         std::array<uint8_t, 0x100000> vramB  {};     // 128KB, BG tiles engine B
         std::array<uint8_t, 0x20000>  vramE  {};     // 64KB,  palette/BG engine B
         std::array<uint8_t, 0x4000>   oam    {};     // 4KB,   sprite attributes
-        std::array<uint8_t, 0x800>    pallete{};    // 2KB,   color palettes
+        std::array<uint8_t, 0x800>    pallete{};     // 2KB,   color palettes
     
         InterruptController irq9;
         InterruptController irq7; 
