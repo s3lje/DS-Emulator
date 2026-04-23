@@ -76,6 +76,7 @@ class ARM {
 
         uint32_t barrelShift(uint32_t val, uint32_t type,
                              uint32_t amount, bool& carryOut);
+        void switchMode(uint32_t newMode);
 
         // ARM instruction group handlers
         void execARM(uint32_t instr);

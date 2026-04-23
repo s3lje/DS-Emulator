@@ -64,6 +64,53 @@ void ARM::step(){
     }
 }
 
+void ARM::switchMode(uint32_t newMode){
+    uint32_t oldMode = cpsr & 0x1F;
+    if (oldMode == newMode) return;
+
+    // Save current r8-r14 into the old mode's bank
+    switch (oldMode) {
+        case MODE_FIQ:
+            for (int i = 0; i < 7; i++) r8_14_fiq[i] = r[8 + i];
+            break;
+        case MODE_IRQ:
+            r13_14_irq[0] = r[13]; r13_14_irq[1] = r[14];
+            break;
+        case MODE_SVC:
+            r13_14_svc[0] = r[13]; r13_14_svc[1] = r[14];
+            break;
+        case MODE_ABT:
+            r13_14_abt[0] = r[13]; r13_14_abt[1] = r[14];
+            break;
+        case MODE_UND:
+            r13_14_und[0] = r[13]; r13_14_und[1] = r[14];
+            break;
+    }
+
+    // Load new mode's banked registers into r8-r14
+    switch (newMode) {
+        case MODE_FIQ:
+            for (int i = 0; i < 7; i++) r[8 + i] = r8_14_fiq[i];
+            break;
+        case MODE_IRQ:
+            r[13] = r13_14_irq[0]; r[14] = r13_14_irq[1];
+            break;
+        case MODE_SVC:
+            r[13] = r13_14_svc[0]; r[14] = r13_14_svc[1];
+            break;
+        case MODE_ABT:
+            r[13] = r13_14_abt[0]; r[14] = r13_14_abt[1];
+            break;
+        case MODE_UND:
+            r[13] = r13_14_und[0]; r[14] = r13_14_und[1];
+            break;
+        // USER/SYSTEM: main r13/r14 already in r[] — nothing to load
+    }
+
+    // Update CPSR mode bits
+    cpsr = (cpsr & ~0x1Fu) | newMode;
+}
+
 bool ARM::checkCond(uint32_t cond){
     switch (cond) {
         case 0x0: return  flagZ();                          // EQ = equal
@@ -251,8 +298,10 @@ void ARM::execDataProcessing(uint32_t instr){
 
     if (updateFlags){
         if (rd == 15){
-            cpsr = currentSPSR();
-            flushPipeline();
+            uint32_t newCPSR = currentSPSR();
+            switchMode(newCPSR & 0x1F);
+            cpsr = newCPSR;
+            flushPipeline(); 
         } else {
             setNZCV(n, z, c, v);
         }
@@ -451,7 +500,14 @@ void ARM::execMSR_MRS(uint32_t instr){
         if (useSPSR){
             currentSPSR() = (currentSPSR() & ~mask) | (val & mask);
         } else {
-            cpsr = (cpsr & ~mask) | (val & mask); // can change CPU mode
+            uint32_t newCPSR = (cpsr & ~mask) | (val & mask);
+            uint32_t newMode = newCPSR & 0x1F;
+            if (newMode != (cpsr & 0x1F))
+                switchMode(newMode);
+            else
+                cpsr = newCPSR;
+
+            cpsr = (cpsr & ~mask) | (val & mask);
         }
     }
 }
@@ -731,9 +787,9 @@ void ARM::triggerIRQ(){
     spsr_irq = cpsr;                             
 
     // Switch to IRQ mode
-    cpsr = (cpsr & ~0x3Fu) | MODE_IRQ;
+    switchMode(MODE_IRQ);
     cpsr |=  (1 << 7);
-    cpsr &= ~(1 << 5);
+    cpsr &= ~(1 << 5); 
 
     // Jump to the irq vector
     r[15] = isARM9 ? 0x0FFFF0018 : 0x00000018;
