@@ -1,6 +1,8 @@
 #include "arm.h"
 #include "../memory/bus.h"
 #include <iostream>
+#include <thread>
+#include <chrono>
 #include <stdexcept>
 
 ARM::ARM(Bus* bus, InterruptController* irq, bool isARM9) 
@@ -24,6 +26,25 @@ void ARM::flushPipeline(){
 
 
 void ARM::step(){
+    uint32_t pc = r[15] - (inThumb() ? 4 : 8);
+
+    // Valid DS ARM9 address ranges
+    bool validPC = (pc >= 0x02000000 && pc < 0x02400000)  // main RAM
+                || (pc >= 0x027E0000 && pc < 0x02800000)  // main RAM top
+                || (pc >= 0xFFFF0000)                      // high vectors
+                || (pc < 0x00004000);                      // ITCM / BIOS
+    if (!validPC && isARM9) {
+        std::cout << "ARM9 jumped to invalid address!\n";
+        std::cout << "PC=0x" << std::hex << pc << "\n";
+        std::cout << "LR=0x" << r[14] << "\n";
+        std::cout << "SP=0x" << r[13] << "\n";
+        std::cout << "CPSR=0x" << cpsr << "\n";
+        for (int i = 0; i < 16; i++)
+            std::cout << "r" << std::dec << i << "=0x" << std::hex << r[i] << "\n";
+        // Halt so you can read the output
+        while(true) { std::this_thread::sleep_for(std::chrono::seconds(1)); }
+    }
+
     static int instrCount = 0;
     if (inThumb()){
         // fetch 16bit instr @ PC-4
